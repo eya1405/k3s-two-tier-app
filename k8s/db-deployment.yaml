@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-deployment
+  namespace: lab5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lab5-db
+  template:
+    metadata:
+      labels:
+        app: lab5-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "lab5db"
+            - name: POSTGRES_USER
+              value: "lab5user"
+            - name: POSTGRES_PASSWORD
+              value: "lab5pass"

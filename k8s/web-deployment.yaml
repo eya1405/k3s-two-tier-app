@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deployment
+  namespace: lab5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lab5-web
+  template:
+    metadata:
+      labels:
+        app: lab5-web
+    spec:
+      containers:
+        - name: web
+          image: najaheya/lab5-web:v1
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_HOST
+              value: "db-service"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "lab5db"
+            - name: DB_USER
+              value: "lab5user"
+            - name: DB_PASSWORD
+              value: "lab5pass"
