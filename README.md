@@ -1,104 +1,90 @@
-Lab 5: Deploying a Two-Tier Web Application on K3s
-Overview
-This project demonstrates deploying a two-tier application on a K3s Kubernetes cluster.
-The architecture consists of:
+Lab 6: Deploying a Two-Tier Web Application with ConfigMaps and Secrets on K3s
 
-Frontend: A Flask web application that allows users to submit and view data.
-Backend: A PostgreSQL database storing the submitted data.
+✅ Overview
+This lab extends Lab 5 by introducing ConfigMaps and Secrets for better configuration management and security.
+We deploy a two-tier application on a K3s cluster:
 
-The application is deployed using Kubernetes Deployments and Services in the namespace lab5.
+Frontend: Flask web app (form to insert and display data)
+Backend: PostgreSQL database
 
+
+🎯 Objectives
+
+Externalize configuration using ConfigMap for non-sensitive data.
+Secure credentials using Secret.
+Deploy both components in the lab6 namespace.
+Expose the web app via NodePort and keep the database internal via ClusterIP.
 Architecture
-[ User ] ---> [ NodePort Service ] ---> [ Flask Web App Pod ]
-                                   |
-                                   v
-                          [ ClusterIP Service ]
-                                   |
-                                   v
-                          [ PostgreSQL Pod ]
-
-
+[ Browser ] ---> [ NodePort Service: web-service ] ---> [ Flask App Pod ]
+                                               |
+                                               v
+                                   [ ClusterIP Service: db-service ]
+                                               |
+                                               v
+                                      [ PostgreSQL Pod ]
 Project Structure
 two-tier-app/
-├── app/                # Flask application
+├── app/                # Flask app + Dockerfile
 │   ├── app.py
-│   ├── Dockerfile
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── Dockerfile
 ├── k8s/                # Kubernetes manifests
 │   ├── namespace.yaml
+│   ├── configmap.yaml
+│   ├── secret.yaml
 │   ├── db-deployment.yaml
 │   ├── db-service.yaml
 │   ├── web-deployment.yaml
 │   └── web-service.yaml
 ├── scripts/
-│   └── install.sh      # Automation script
+│   ├── install.sh      # Automates build, push, and apply
+│
 └── README.md
-
-
-Prerequisites
-
-A running K3s cluster
-kubectl configured to access the cluster
-Docker installed and logged in to Docker HubLab 5: Deploying a Two-Tier Web Application on K3s
-Overview
-This project demonstrates deploying a two-tier application on a K3s Kubernetes cluster.
-The architecture consists of:
-
 Deployment Steps
-1. Clone the Repository
+1. Create Namespace: 
+kubectl apply -f k8s/namespace.yaml
 
-git clone <your-repo-url>
-cd two-tier-app
-2. Build and Push the Web App Image
+2. Build and Push Web App Image
+
 
 cd app
-docker build -t najaheya/lab5-web:v1 .
-docker login -u najaheya
-docker push najaheya/lab5-web:v1
+docker build -t <dockerhub-username>/lab6-web:v1 .
+docker push <dockerhub-username>/lab6-web:v1
 
-3. Apply Kubernetes Manifests
+3. Apply ConfigMap and Secret: 
 
-cd ../k8s
-kubectl apply -f namespace.yaml
-kubectl apply -f db-deployment.yaml
-kubectl apply -f db-service.yaml
-kubectl apply -f web-deployment.yaml
-kubectl apply -f web-service.yaml
-4. Verify Resources
-kubectl -n lab5 get all
-You should see:
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secret.yaml
 
-db-deployment and web-deployment pods running
-db-service (ClusterIP)
-web-service (NodePort)
+4. Deploy Database and Service: 
+
+kubectl apply -f k8s/db-deployment.yaml
+kubectl apply -f k8s/db-service.yaml
+
+5. Deploy Web App and Service
+
+kubectl apply -f k8s/web-deployment.yaml
+kubectl apply -f k8s/web-service.yaml
 
 
-Access the Application
-Find the NodePort:
-kubectl -n lab5 get svc web-service
+6. Verify: 
 
+kubectl -n lab6 get all
+kubectl -n lab6 rollout status deploy/web-deployment
+kubectl -n lab6 rollout status deploy/db-deployment
+Access the App
 
-Default NodePort: 30080
-Access via:
-http://<node-ip>:30080
+Find Node IP:
+kubectl get nodes -o wide
+Open in browser:
 
-Test the Application
+http://<node-ip>:30081
+Test Instructions
 
-Submit a name and email using the form.
-Refresh the page to see stored entries.
+1-Submit a name and email via the form.
+2-Refresh the page → Data should appear in the list.
+3-Verify in PostgreSQL:
 
-
-Validate Database
-(Optional) Connect to PostgreSQL pod:
-kubectl -n lab5 exec -it $(kubectl -n lab5 get pod -l app=lab5-db -o name) -- psql -U lab5user -d lab5db
-
-Run:
-
-SELECT * FROM entries;
-
-
-Automation
-Run the install script:
-cd scripts
-chmod +x install.sh
-./install.sh
+kubectl -n lab6 exec -it $(kubectl -n lab6 get pod -l app=lab6-db -o jsonpath='{.items[0].metadata.name}') -- \
+psql -U lab6user -d lab6db -c "SELECT * FROM entries;"
+# two-tier-app-lab6
